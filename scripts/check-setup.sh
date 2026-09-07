@@ -26,7 +26,7 @@ fi
 
 # Config
 if [ -f "$HOME/.revenue-engine-imparatta/identity.md" ] && [ -f "$HOME/.revenue-engine-imparatta/icp.md" ]; then
-  ok "Configured (~/.revenue-engine-imparatta seeded) - run /revenue-engine"
+  ok "Configured (~/.revenue-engine-imparatta seeded) - run /revenue-engine-imparatta"
 else
   warn "Not configured yet - seed ~/.revenue-engine-imparatta (see README)"
 fi
@@ -50,4 +50,3 @@ fi
 
 echo
 echo "Gmail drafting uses gog with account federico@imparatta.com"
-echo "(they depend on which connectors are enabled inside Claude Code)."

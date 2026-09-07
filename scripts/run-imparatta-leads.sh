@@ -43,8 +43,9 @@ done
 [ -s "$DATA_DIR/.secrets/hunter.env" ] || { say "RUNNER FAIL: hunter.env missing."; exit 78; }
 
 # gog must be able to reach the sending mailbox NOW; a stale token discovered at the
-# first draft wastes the whole sweep.
-if ! gog gmail drafts list -a "$GOG_ACCOUNT" --max 1 >/dev/null 2>>"$LOG"; then
+# first draft wastes the whole sweep. Bounded: an unbounded preflight can hang holding
+# nothing, an unbounded postflight can hang holding the lock.
+if ! "$TIMEOUT_BIN" 60s gog gmail drafts list -a "$GOG_ACCOUNT" --max 1 >/dev/null 2>>"$LOG"; then
   say "RUNNER FAIL: gog cannot read $GOG_ACCOUNT drafts (expired token?). Run: gog auth add"
   exit 78
 fi
@@ -78,6 +79,10 @@ trap 'say "termination signal, shutting down"; exit 143' TERM INT HUP
 # --- the sweep ---------------------------------------------------------------
 say "starting /revenue-engine-imparatta scheduled (run $RUN_ID)"
 CLAUDE_LOG="$RUN_DIR/claude.log"
+# Freshness baseline: a same-day re-run after a failed attempt would otherwise pass
+# the assertions on the strength of the earlier attempt's artifacts.
+START_STAMP="$RUN_DIR/.start"
+touch "$START_STAMP"
 "$TIMEOUT_BIN" --signal=TERM --kill-after=60s 150m \
   claude -p "/revenue-engine-imparatta scheduled $RUN_DATE" --dangerously-skip-permissions \
   > "$CLAUDE_LOG" 2>&1
@@ -97,14 +102,24 @@ fi
 FINAL_RC=0; FAILMSG=""
 if [ ! -s "$BUNDLE/report.md" ]; then
   FAILMSG="no report at $BUNDLE/report.md"; FINAL_RC=87
+elif [ ! "$BUNDLE/report.md" -nt "$START_STAMP" ]; then
+  # Exists but predates this run: a leftover from an earlier same-day attempt.
+  FAILMSG="report at $BUNDLE/report.md is from an earlier attempt, not this run"
+  FINAL_RC=87
 elif ! grep -qF "## [$RUN_DATE]" "$DATA_DIR/lead-history.md" 2>/dev/null; then
   # The skill writes the day heading even on a dry night, so an absent heading is a
   # failed run, not a quiet market.
   FAILMSG="report exists but lead-history.md has no heading for $RUN_DATE - dedupe record lost"
   FINAL_RC=88
-elif [ ! -s "$DATA_DIR/outreach/$RUN_DATE-batch.md" ]; then
-  FAILMSG="no outreach manifest at outreach/$RUN_DATE-batch.md (the skill writes one even when empty)"
+elif [ ! -s "$DATA_DIR/outreach/$RUN_DATE-batch.md" ] || [ ! "$DATA_DIR/outreach/$RUN_DATE-batch.md" -nt "$START_STAMP" ]; then
+  FAILMSG="no fresh outreach manifest at outreach/$RUN_DATE-batch.md (the skill writes one even when empty)"
   FINAL_RC=89
+elif [ "$CLAUDE_RC" -ne 0 ]; then
+  # Artifacts look complete but the agent process died or timed out: the tail of the
+  # run (drafts, Slack) may be missing. Complete-looking artifacts must not silence a
+  # dead process.
+  FAILMSG="artifacts exist but claude exited $CLAUDE_RC - the end of the run may be missing; reconcile drafts before re-running"
+  FINAL_RC=86
 fi
 
 if grep -qF "Background tasks still running" "$CLAUDE_LOG" 2>/dev/null; then
@@ -119,7 +134,7 @@ if [ "$FINAL_RC" -ne 0 ]; then
   say "             and reconcile against outreach/$RUN_DATE-batch.md before re-running:"
   say "             a blind re-run double-drafts every prospect already contacted."
 else
-  DRAFTED="$(gog gmail drafts list -a "$GOG_ACCOUNT" --max 20 -p 2>/dev/null | wc -l | tr -d ' ')"
+  DRAFTED="$("$TIMEOUT_BIN" 60s gog gmail drafts list -a "$GOG_ACCOUNT" --max 20 -p 2>/dev/null | wc -l | tr -d ' ')"
   say "done: report at $BUNDLE, history heading written, manifest written ($DRAFTED drafts now in $GOG_ACCOUNT)."
 fi
 

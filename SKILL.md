@@ -64,7 +64,7 @@ Write a user-facing bundle to `~/Downloads/revenue-engine-imparatta-<DATE>/`
    - every company in `~/.revenue-engine-imparatta/lead-history.md`;
    - recent manifests in `~/.revenue-engine-imparatta/outreach/`;
    - recent drafts in the sending mailbox:
-     `gog gmail drafts list -a federico@imparatta.com --max 50`;
+     `gog gmail drafts list -a federico@imparatta.com --max 100`;
    - **cross-engine**: every company in `~/.ataraxy-leads/lead-history.md` and every
      slug under `~/.ataraxy-leads/claims/`. Federico runs a second outreach identity
      (Ataraxy); a company must never hear from both. If the ataraxy files are absent
@@ -110,11 +110,20 @@ addresses bounce and burn the imparatta.com domain.
 
 Score each lead High/Medium/Low per `references/icp-scoring.md` (parallelize with
 `scripts/evaluate-leads.md` for large batches). Apply `exclude.md` and the
-dealbreakers BEFORE banding. Cap drafts at the max in `preferences.md` - when more
+dealbreakers BEFORE banding. Then select the DRAFT SET: only High-fit leads, ONE
+contact per company (the strongest), at most the cap in `preferences.md`. When more
 High leads exist than the cap, draft the strongest and band the rest Medium with a
-note.
+note. Nothing outside the draft set ever gets a Gmail draft - Medium leads and
+second contacts go in the report only.
 
 ### Step 4: Save History
+
+**Ordering: append history AFTER the Step 5 drafts are created**, then record each
+row's real status (`Drafted` for created drafts, `New`/`Skipped` for the rest). A
+lead recorded before it is pitched would be deduped out of every future sweep
+without ever having been contacted; the opposite crash (drafts exist, history
+missing) is recoverable because Federico reviews every draft by hand before
+sending. The steps are numbered by what they produce, not their execution order.
 
 Append ALL leads (including skips) to `~/.revenue-engine-imparatta/lead-history.md`:
 
@@ -198,6 +207,8 @@ invokes `/revenue-engine-imparatta scheduled <YYYY-MM-DD>`. In this mode:
   bundle, the outreach manifest (write it even if empty, stating why).
 - A dry night (zero leads after dedupe) is a valid outcome: write the heading, a
   short report saying so, an empty manifest, and the Slack summary.
+- `risky` (catch-all) emails are NEVER drafted on a scheduled run - there is no user
+  to opt in. They go in the report flagged risky, LinkedIn DM only.
 
 ## Response Format (interactive runs)
 
