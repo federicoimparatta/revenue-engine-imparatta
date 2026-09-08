@@ -51,6 +51,13 @@ Weekdays 23:00 America/Montevideo via `launchd/com.federico.imparatta-leads.plis
 <date>"`. The runner asserts on artifacts (report, ledger heading, outreach
 manifest), never on claude's exit code.
 
+**Model is pinned to Opus** (`MODEL` at the top of the runner), never inherited.
+Interactive work runs on Fable, so a nightly job on the default model competes for
+the same quota and dies as "broken research". Opus is a separate pool, fresh at
+23:00, and the tier the scoring and outreach writing deserve. For a cheaper night,
+run the script directly with `IMPARATTA_LEADS_MODEL=claude-sonnet-5` (launchctl
+does not pass env through).
+
 Kick a run manually:
 
 ```bash
