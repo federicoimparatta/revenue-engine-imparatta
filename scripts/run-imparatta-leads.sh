@@ -139,7 +139,8 @@ if [ "$FINAL_RC" -ne 0 ]; then
   say "             and reconcile against outreach/$RUN_DATE-batch.md before re-running:"
   say "             a blind re-run double-drafts every prospect already contacted."
 else
-  DRAFTED="$("$TIMEOUT_BIN" 60s gog gmail drafts list -a "$GOG_ACCOUNT" --max 20 -p 2>/dev/null | wc -l | tr -d ' ')"
+  # tail -n +2 drops the TSV header line, which the first run counted as a draft.
+  DRAFTED="$("$TIMEOUT_BIN" 60s gog gmail drafts list -a "$GOG_ACCOUNT" --max 20 -p 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')"
   say "done: report at $BUNDLE, history heading written, manifest written ($DRAFTED drafts now in $GOG_ACCOUNT)."
 fi
 
