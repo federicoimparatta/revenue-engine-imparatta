@@ -77,6 +77,11 @@ trap cleanup EXIT
 trap 'say "termination signal, shutting down"; exit 143' TERM INT HUP
 
 # --- the sweep ---------------------------------------------------------------
+# Print mode kills the turn after 600s of waiting on background subagents, which is
+# exactly what the parallel hunters are (first run, 2026-09-07, died this way at
+# minute 18 with two hunters still out). 0 = wait indefinitely; the gtimeout below
+# is the real deadline.
+export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
 say "starting /revenue-engine-imparatta scheduled (run $RUN_ID)"
 CLAUDE_LOG="$RUN_DIR/claude.log"
 # Freshness baseline: a same-day re-run after a failed attempt would otherwise pass
