@@ -19,13 +19,12 @@ DATA_DIR="$HOME/.revenue-engine-imparatta"
 GOG_ACCOUNT="federico@imparatta.com"
 # Pinned, never inherited. Interactive work runs on Fable all day, so a nightly job
 # on the default model competes with it for the same quota: the 2026-08-24
-# ataraxy-leads run died that way and paged as "broken research". Opus is a separate
-# pool that is fresh at 23:00, and it is the right tier for the two judgment calls
-# this run makes with Federico's name on them - which leads are worth a pitch, and
-# how the pitch reads. To run a cheaper night by hand (launchctl kickstart does NOT
-# pass env through, so invoke the script directly):
-#   IMPARATTA_LEADS_MODEL=claude-sonnet-5 ~/.claude/skills/revenue-engine-imparatta/scripts/run-imparatta-leads.sh
-MODEL="${IMPARATTA_LEADS_MODEL:-claude-opus-5}"
+# ataraxy-leads run died that way and paged as "broken research". Sonnet is a separate
+# pool that is fresh at 23:00, and every scheduled job on this machine now runs there.
+# To spend a heavier night on Opus by hand (launchctl kickstart does NOT pass env
+# through, so invoke the script directly):
+#   IMPARATTA_LEADS_MODEL=claude-opus-5 ~/.claude/skills/revenue-engine-imparatta/scripts/run-imparatta-leads.sh
+MODEL="${IMPARATTA_LEADS_MODEL:-${ANTHROPIC_MODEL:-claude-sonnet-5}}"
 LOGDIR="$DATA_DIR/cron-logs"
 mkdir -p "$LOGDIR"
 RUN_DATE="$(date +%F)"
@@ -110,7 +109,7 @@ if grep -qiE "reached your .* limit|usage limit|rate.?limit|quota" "$CLAUDE_LOG"
    && [ ! -s "$BUNDLE/report.md" ]; then
   say "RUNNER FAIL: $MODEL refused the run - usage limit or quota, not a research failure."
   say "             $(grep -hoiE "You've reached your [^.]*limit[^.]*" "$CLAUDE_LOG" 2>/dev/null | head -1)"
-  say "             Re-run on the other pool: IMPARATTA_LEADS_MODEL=claude-sonnet-5 $0"
+  say "             Re-run on the other pool: IMPARATTA_LEADS_MODEL=claude-opus-5 $0"
   exit 74
 fi
 
