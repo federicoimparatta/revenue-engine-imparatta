@@ -176,6 +176,13 @@ tools: the connected MCP mailbox is a different account.
 
 ### Step 6: Present Results + Slack Summary
 
+**Never publish these leads to Trello, or to any other shared workspace.** The
+Ataraxy engine publishes its runs to a shared Trello board that other people read;
+this engine does not, ever. The deliverables are the Downloads bundle, the ledger,
+and Federico's DM - nothing else. The scheduled runner blocks the Trello and Gmail
+MCP tools outright; on an interactive run, honor the same boundary yourself.
+
+
 Show only NEW High/Medium leads (company, vertical, offer, signal, contact), point
 to the Downloads bundle, and flag anything needing verification before send.
 

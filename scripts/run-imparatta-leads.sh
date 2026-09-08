@@ -90,14 +90,27 @@ trap 'say "termination signal, shutting down"; exit 143' TERM INT HUP
 # minute 18 with two hunters still out). 0 = wait indefinitely; the gtimeout below
 # is the real deadline.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
+# Shared surfaces this personal pipeline must never reach. Instructions in SKILL.md
+# are not enough on a run with --dangerously-skip-permissions: the tools have to be
+# absent. Verified with a control - the same call is REACHABLE without this flag and
+# BLOCKED with it.
+#   Trello  the board is the Ataraxy engine's deliverable and Martin reads it. These
+#           are Federico's own fractional-services prospects; they do not belong on
+#           a shared board any more than in a shared Slack channel.
+#   Gmail   the connected MCP mailbox is fimparatta@gmail.com, NOT the sending
+#           identity. Every draft goes through gog to federico@imparatta.com; this
+#           makes drafting from the wrong mailbox impossible rather than forbidden.
+BLOCKED_TOOLS="mcp__claude_ai_Trello__* mcp__claude_ai_Gmail__*"
 say "starting /revenue-engine-imparatta scheduled (run $RUN_ID, model $MODEL)"
+say "blocked tools: $BLOCKED_TOOLS"
 CLAUDE_LOG="$RUN_DIR/claude.log"
 # Freshness baseline: a same-day re-run after a failed attempt would otherwise pass
 # the assertions on the strength of the earlier attempt's artifacts.
 START_STAMP="$RUN_DIR/.start"
 touch "$START_STAMP"
 "$TIMEOUT_BIN" --signal=TERM --kill-after=60s 150m \
-  claude -p "/revenue-engine-imparatta scheduled $RUN_DATE $RUN_DIR" --model "$MODEL" --dangerously-skip-permissions \
+  claude -p "/revenue-engine-imparatta scheduled $RUN_DATE $RUN_DIR" --model "$MODEL" \
+  --dangerously-skip-permissions --disallowed-tools $BLOCKED_TOOLS \
   > "$CLAUDE_LOG" 2>&1
 CLAUDE_RC=$?
 say "claude exited $CLAUDE_RC"
