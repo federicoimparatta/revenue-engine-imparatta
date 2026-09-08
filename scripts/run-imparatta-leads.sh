@@ -97,7 +97,7 @@ CLAUDE_LOG="$RUN_DIR/claude.log"
 START_STAMP="$RUN_DIR/.start"
 touch "$START_STAMP"
 "$TIMEOUT_BIN" --signal=TERM --kill-after=60s 150m \
-  claude -p "/revenue-engine-imparatta scheduled $RUN_DATE" --model "$MODEL" --dangerously-skip-permissions \
+  claude -p "/revenue-engine-imparatta scheduled $RUN_DATE $RUN_DIR" --model "$MODEL" --dangerously-skip-permissions \
   > "$CLAUDE_LOG" 2>&1
 CLAUDE_RC=$?
 say "claude exited $CLAUDE_RC"
@@ -141,7 +141,23 @@ if grep -qF "Background tasks still running" "$CLAUDE_LOG" 2>/dev/null; then
   [ "$FINAL_RC" -eq 0 ] && FINAL_RC=73
 fi
 
-if [ "$FINAL_RC" -ne 0 ]; then
+# The Slack DM is the only part of the run Federico sees without opening a folder, and
+# on 2026-09-08 the agent reported delivering it while nothing was posted. A claim in
+# the log is not delivery: require the message ts the API returned. Lowest-priority
+# check, so it never masks a draft failure - the drafts are already safe in Gmail.
+if [ "$FINAL_RC" -eq 0 ] && ! grep -qE "^[0-9]{10}\.[0-9]+$" "$RUN_DIR/slack-receipt.txt" 2>/dev/null; then
+  FAILMSG="drafts and report are fine, but the summary DM was not delivered: $(head -1 "$RUN_DIR/slack-receipt.txt" 2>/dev/null || echo "no slack-receipt.txt written")"
+  FINAL_RC=91
+fi
+
+if [ "$FINAL_RC" -eq 91 ]; then
+  # Not a sweep failure: everything that touches a prospect completed. Do NOT print
+  # the reconcile-before-re-running guidance here - re-running is exactly wrong, it
+  # would double-draft six prospects to re-send one message.
+  say "RUNNER FAIL: $FAILMSG"
+  say "             The drafts and the report are COMPLETE - do not re-run the sweep."
+  say "             Read the summary at $BUNDLE/report.md, or post it by hand."
+elif [ "$FINAL_RC" -ne 0 ]; then
   say "RUNNER FAIL: $FAILMSG"
   say "             Check $CLAUDE_LOG. If drafts were partially created, list them with:"
   say "             gog gmail drafts list -a $GOG_ACCOUNT --max 20"
@@ -150,7 +166,7 @@ if [ "$FINAL_RC" -ne 0 ]; then
 else
   # tail -n +2 drops the TSV header line, which the first run counted as a draft.
   DRAFTED="$("$TIMEOUT_BIN" 60s gog gmail drafts list -a "$GOG_ACCOUNT" --max 20 -p 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')"
-  say "done: report at $BUNDLE, history heading written, manifest written ($DRAFTED drafts now in $GOG_ACCOUNT)."
+  say "done: report at $BUNDLE, history heading written, manifest written ($DRAFTED drafts now in $GOG_ACCOUNT), summary DM'd (ts $(head -1 "$RUN_DIR/slack-receipt.txt" 2>/dev/null))."
 fi
 
 # best-effort housekeeping; never decides the exit status

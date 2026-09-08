@@ -177,11 +177,23 @@ tools: the connected MCP mailbox is a different account.
 ### Step 6: Present Results + Slack Summary
 
 Show only NEW High/Medium leads (company, vertical, offer, signal, contact), point
-to the Downloads bundle, and flag anything needing verification before send. Post
-the run summary to the Slack DM configured in `preferences.md`
-(`mcp__claude_ai_Slack__slack_send_message`): focus, net-new company count, drafted
-leads grouped by offer, risky emails, LinkedIn-only leads, and the bundle path. Use
-`HHhMM` for any times (Slack mobile renders `HH:MM` as an emoji box).
+to the Downloads bundle, and flag anything needing verification before send.
+
+Then post the run summary as a **Slack DM to Federico** -
+`mcp__claude_ai_Slack__slack_send_message` with the `channel_id` in
+`preferences.md`. This is his personal pipeline: never post it to a shared channel,
+whatever the ataraxy-leads engine does with its own runs. Contents: focus, net-new
+company count, drafted leads grouped by offer, risky emails, LinkedIn-only leads,
+and the bundle path. Use `HHhMM` for any times (Slack mobile renders `HH:MM` as an
+emoji box).
+
+**Prove the DM, do not assert it.** The 2026-09-08 run reported "Slack summary
+delivered to your DM" when nothing had been posted. Take the `ts` from the
+`slack_send_message` response and write it to `<RUN_DIR>/slack-receipt.txt` (the
+runner passes `RUN_DIR`; on an interactive run write it into the Downloads bundle).
+If the call errors or returns no `ts`, write `FAILED: <reason>` to that file instead
+and say so in your final message. Never report a delivery you did not get a `ts`
+back for.
 
 ### Step 7: Learn from Feedback
 
@@ -195,11 +207,13 @@ Confirm what changed in one line.
 
 The LaunchAgent `com.federico.imparatta-leads` runs
 `scripts/run-imparatta-leads.sh` weekdays at 23:00 (America/Montevideo), which
-invokes `/revenue-engine-imparatta scheduled <YYYY-MM-DD>`. In this mode:
+invokes `/revenue-engine-imparatta scheduled <YYYY-MM-DD> <RUN_DIR>`. In this mode:
 
 - The date after `scheduled` is the run date the runner stamped at launch. Use it as
   `<DATE>` for EVERY artifact (bundle folder, history heading, manifest name) even
   when the sweep finishes after midnight - the runner's assertions use that date.
+- The path after the date is `RUN_DIR`. Write `slack-receipt.txt` there (Step 6);
+  the runner reads it to tell a delivered DM from a claimed one.
 - Never ask questions and never wait for input; make every call yourself.
 - Never end the turn with work still in background tasks.
 - Always produce the three artifacts the runner asserts on, in this order of
