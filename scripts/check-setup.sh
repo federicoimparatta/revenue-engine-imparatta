@@ -48,5 +48,11 @@ else
   warn "No Hunter.io key (optional) - LinkedIn-first mode; add one at ~/.revenue-engine-imparatta/.secrets/hunter.env"
 fi
 
+if [ -s "$HOME/.revenue-engine-imparatta/.secrets/typesafe.env" ] || [ -n "${TYPESAFE_API_KEY:-}" ]; then
+  ok "TypeSafe key configured (structured lead scoring)"
+else
+  warn "No TypeSafe key (optional) - leads scored by hand; add one at ~/.revenue-engine-imparatta/.secrets/typesafe.env"
+fi
+
 echo
 echo "Gmail drafting uses gog with account federico@imparatta.com"

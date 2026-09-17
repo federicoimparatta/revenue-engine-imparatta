@@ -18,7 +18,8 @@ headless from launchd.
    fresh raises with product/AI build-out promises, public shipping stalls, and
    leadership departures with no successor.
 3. Verify contacts (real LinkedIn profiles only, Hunter.io-verified emails only).
-4. Score against the ICP, cap at 6 drafts a night to protect the sending domain.
+4. Score against the ICP (via TypeSafe's Jev model when configured, else scored by
+   hand), cap at 6 drafts a night to protect the sending domain.
 5. Draft lowercase, plain-text cold emails into federico@imparatta.com via
    `gog gmail drafts create` - drafts only, every send is manual.
 6. Write the report bundle to `~/Downloads/revenue-engine-imparatta-<date>/`,
@@ -33,6 +34,8 @@ mkdir -p ~/.revenue-engine-imparatta/.secrets
 # seed identity.md services.md icp.md preferences.md exclude.md lead-history.md
 # (copy from the machine that has them - they are not in this repo)
 # put the Hunter.io key in ~/.revenue-engine-imparatta/.secrets/hunter.env
+# put the TypeSafe key in ~/.revenue-engine-imparatta/.secrets/typesafe.env
+#   (optional - format: TYPESAFE_API_KEY=<key>, no quotes, no "export")
 gog auth add   # federico@imparatta.com, gmail scope
 cp launchd/com.federico.imparatta-leads.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.federico.imparatta-leads.plist
@@ -73,6 +76,7 @@ Or run interactively inside Claude Code: `/revenue-engine-imparatta`.
 | `references/` | Scoring rubric and outreach framework. |
 | `scripts/run-imparatta-leads.sh` | The launchd runner (lock, deadline, artifact assertions). |
 | `scripts/hunter_lookup.py` | Hunter.io email find + verify. |
+| `scripts/typesafe_score.py` | TypeSafe (Jev) lead-fit scoring - optional, see `references/icp-scoring.md`. |
 | `scripts/check-setup.sh` | Install sanity check. |
 | `launchd/` | The LaunchAgent plist. |
 | `~/.revenue-engine-imparatta/` | Data: config, ledger, per-lead archives, secrets. Never in this repo. |

@@ -35,6 +35,7 @@ Everything specific to the practice lives in the data directory
 | `leads/<slug>-<date>/` | Per-lead research and outreach archive. |
 | `outreach/` | Per-run outreach manifests. |
 | `.secrets/hunter.env` | Hunter.io key. Gitignored, never committed. |
+| `.secrets/typesafe.env` | TypeSafe (Jev) key. Optional - enables fast structured lead scoring (Step 3). Gitignored, never committed. |
 
 ## Deliverables (every run)
 
@@ -110,7 +111,10 @@ addresses bounce and burn the imparatta.com domain.
 
 Score each lead High/Medium/Low per `references/icp-scoring.md` (parallelize with
 `scripts/evaluate-leads.md` for large batches). Apply `exclude.md` and the
-dealbreakers BEFORE banding. Then select the DRAFT SET: only High-fit leads, ONE
+dealbreakers BEFORE banding. When `TYPESAFE_API_KEY` is configured, the scoring
+dimensions come from `scripts/typesafe_score.py` (TypeSafe's Jev model) instead of
+being reasoned out freehand - see `scripts/evaluate-leads.md` for how the subagent
+calls it and composes the band. No key: score by hand as before, same rubric. Then select the DRAFT SET: only High-fit leads, ONE
 contact per company (the strongest), at most the cap in `preferences.md`. When more
 High leads exist than the cap, draft the strongest and band the rest Medium with a
 note. Nothing outside the draft set ever gets a Gmail draft - Medium leads and

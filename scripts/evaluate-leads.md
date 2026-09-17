@@ -12,6 +12,39 @@ record for borderline ones).
 
 ## Task
 
+Apply the hard exclude and dedupe first (see Rules). For every record that survives,
+get the five scoring dimensions from `references/icp-scoring.md` by calling
+`scripts/typesafe_score.py` instead of reasoning them out by hand:
+
+```bash
+python3 "<SKILL_DIR>/scripts/typesafe_score.py" score --record <lead.json>
+```
+
+Build `<lead.json>` from the raw record plus context pulled from `icp.md` and
+`services.md`:
+
+```json
+{
+  "company": "...", "vertical": "...", "country": "...",
+  "signal": "...", "source_url": "...",
+  "icp_verticals": [...], "icp_geographies": [...], "icp_stage": "...",
+  "offers": [{"name": "...", "what": "..."}, ...]
+}
+```
+
+The script returns `vertical_match` (choice), `signal_strength` (noul),
+`geography_fit` (choice), `stage_budget_fit` (score), and `offer_fit` (choice) -
+each with a probability/confidence. **You compose the band, the script does not**:
+apply the weights and dealbreakers in `preferences.md` to these five answers to land
+on High/Medium/Low, same as you would have from the rubric directly. Treat a low
+`confidence` (below ~0.5) as a toss-up, not a verdict - fall back to reading `signal`
+yourself for that dimension.
+
+If `TYPESAFE_API_KEY` isn't configured (script exits non-zero with "No
+TYPESAFE_API_KEY..."), score the five dimensions by hand straight from
+`references/icp-scoring.md` as before - this is a speed/consistency upgrade, not a
+hard dependency.
+
 For each record, return a structured verdict:
 
 ```
@@ -35,7 +68,8 @@ means LinkedIn-only.
 ## Rules
 
 - Apply the **hard exclude first**. If excluded, set `fit: Low`, `exclude: yes`, no
-  outreach - it goes in the Skipped table.
+  outreach - it goes in the Skipped table. This is a deterministic list check, not a
+  judgment call - never send excluded companies through the scorer.
 - A company already in `~/.revenue-engine-imparatta/lead-history.md` is a duplicate - flag it so
   the workflow drops it from new results.
 - LinkedIn URLs must be confirmed by search, never inferred from the name.

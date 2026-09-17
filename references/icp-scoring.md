@@ -4,6 +4,12 @@ Score every lead **High / Medium / Low** against the client's ICP. The source of
 is `~/.revenue-engine-imparatta/icp.md` (targets, offer mapping, buyer titles) plus
 `~/.revenue-engine-imparatta/preferences.md` (weights, dealbreakers); this file is the rubric.
 
+When `TYPESAFE_API_KEY` is configured, `scripts/evaluate-leads.md` gets the first four
+dimensions below as one TypeSafe (Jev) call via `scripts/typesafe_score.py`, then
+composes the band itself using the weights here and in `preferences.md` - the model
+answers the dimension, never the band. Without a key, score the same dimensions by
+hand from this rubric; the definitions below are shared by both paths.
+
 ## Offer mapping
 
 `icp.md` contains a table mapping signals to offers (built during setup):
