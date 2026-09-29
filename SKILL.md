@@ -45,8 +45,8 @@ Write a user-facing bundle to `~/Downloads/revenue-engine-imparatta-<DATE>/`
   python-docx is available: `python3 "<SKILL_DIR>/scripts/md_to_docx.py" in.md out.docx`
   - never block the run on the converter.)
 - One outreach draft per High-fit lead, per `references/outreach-guide.md`.
-- A Gmail draft per lead with a verified deliverable email, created with gog in
-  federico@imparatta.com's drafts folder (never sent).
+- A Gmail draft per draft-set lead (Step 3) with a verified deliverable email,
+  created with gog in federico@imparatta.com's drafts folder (never sent).
 - A short run summary posted as a Slack DM to the channel id in `preferences.md`.
 
 ---
@@ -101,9 +101,9 @@ a role is known, record the target title and the company LinkedIn people-search 
 python3 "<SKILL_DIR>/scripts/hunter_lookup.py" enrich --domain <domain> --first <First> --last <Last>
 ```
 
-Act on the result: `deliverable=yes` is emailable; `NOT_FOUND` or `deliverable=no`
-means do NOT email (LinkedIn-only); `risky` (catch-all domain) means prefer LinkedIn
-and email only as a flagged last resort. Never guess email patterns - guessed
+Act on the result: `deliverable=yes` is emailable; `NOT_FOUND`, `deliverable=no` or
+`deliverable=unknown` means do NOT email (LinkedIn-only); `risky` (catch-all domain) gets no draft:
+LinkedIn-only, listed in the report flagged risky. Never guess email patterns - guessed
 addresses bounce and burn the imparatta.com domain.
 
 ### Step 3: Score and Exclude
@@ -161,8 +161,8 @@ style, language policy, structure, signature and channel rules all come from
 `~/.revenue-engine-imparatta/outreach/<DATE>-batch.md` and archive per-lead copies
 to `~/.revenue-engine-imparatta/leads/<slug>-<DATE>/`.
 
-**Gmail drafts - gog only.** For every lead with a verified deliverable email, write
-the body to a temp file and create the draft:
+**Gmail drafts - gog only.** For every draft-set lead (Step 3) with a verified
+deliverable email, write the body to a temp file and create the draft:
 
 ```bash
 gog gmail drafts create -a federico@imparatta.com \
@@ -194,8 +194,8 @@ company count, drafted leads grouped by offer, risky emails, LinkedIn-only leads
 and the bundle path. Use `HHhMM` for any times (Slack mobile renders `HH:MM` as an
 emoji box).
 
-**Prove the DM, do not assert it.** The 2026-09-08 run reported "Slack summary
-delivered to your DM" when nothing had been posted. Take the `ts` from the
+**Prove the DM, do not assert it.** The runner counts the summary as delivered only
+when `slack-receipt.txt` holds the message `ts`. Take the `ts` from the
 `slack_send_message` response and write it to `<RUN_DIR>/slack-receipt.txt` (the
 runner passes `RUN_DIR`; on an interactive run write it into the Downloads bundle).
 If the call errors or returns no `ts`, write `FAILED: <reason>` to that file instead

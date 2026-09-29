@@ -38,8 +38,8 @@ lead's record, `~/.revenue-engine-imparatta/services.md` (offers + proof + credi
 2. **Offer (2-3 sentences)** - the one best-fit offer, framed as solving that trigger,
    with the landing URL linked inline. Use the offer's own key differentiators from
    `services.md`.
-3. **Proof (1 sentence)** - one matching anonymized proof point (vertical + country
-   only).
+3. **Proof (1 sentence)** - one matching proof point from `services.md`, exactly as
+   written there.
 4. **CTA (1 sentence)** + sign-off + signature.
 
 ## LinkedIn DM variant
@@ -52,8 +52,8 @@ never automate LinkedIn (no bots, no Selenium: ToS and account-ban risk).
 
 - **Verified deliverable email** (`deliverable=yes` from Hunter) -> full email; create
   a Gmail draft if Gmail delivery is enabled in `preferences.md`.
-- **Risky email** (catch-all domain) -> LinkedIn-first; include the email in the report
-  flagged "risky", draft it only if the user opts in.
+- **Risky email** (catch-all domain) -> no Gmail draft; LinkedIn-only, with the email listed
+  in the report flagged "risky".
 - **No verified email but a confirmed LinkedIn profile** -> LinkedIn-only: the DM goes
   in the report and the manifest for manual sending. No Gmail draft.
 - **No email and no confirmed profile** -> drop the lead from outreach (it stays in the

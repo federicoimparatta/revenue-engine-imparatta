@@ -55,7 +55,7 @@ manifest), never on claude's exit code.
 as is every other scheduled job on this machine. Interactive work runs on Fable, so
 a nightly job on the default model competes for the same quota and dies as "broken
 research". For a heavier night on Opus, run the script directly with
-`IMPARATTA_LEADS_MODEL=claude-opus-5` (launchctl does not pass env through).
+`IMPARATTA_LEADS_MODEL=opus` (launchctl does not pass env through).
 
 Kick a run manually:
 
