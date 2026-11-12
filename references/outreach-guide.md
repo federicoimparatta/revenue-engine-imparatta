@@ -50,7 +50,8 @@ never automate LinkedIn (no bots, no Selenium: ToS and account-ban risk).
 
 ## Channel decision per lead
 
-- **Verified deliverable email** (`deliverable=yes` from Hunter) -> full email; create
+- **Verified deliverable email** (`deliverable=yes` from Hunter, numeric
+  `finder_score >= 80`, and a confirmed current title) -> full email; create
   a Gmail draft if Gmail delivery is enabled in `preferences.md`.
 - **Risky email** (catch-all domain) -> no Gmail draft; LinkedIn-only, with the email listed
   in the report flagged "risky".
@@ -68,7 +69,7 @@ gog gmail drafts create -a federico@imparatta.com \
   --to "<email>" --subject "<subject>" --body-file "<tempfile>"
 ```
 
-Plain text only - never `--body-html` and never a send command. Gmail auto-links bare
+Plain text only - never `--body-html`, never send and never reply. Gmail auto-links bare
 URLs on send. Drafts are never auto-sent: Federico reviews and sends every one. Do
 NOT use the Gmail MCP `create_draft` tool: the connected MCP mailbox is a different
 account.
@@ -79,9 +80,47 @@ Before drafting anything, re-check the dedupe set (SKILL.md Step 0): `lead-histo
 rows marked Drafted/Contacted, recent Gmail drafts to the same domain, and prior
 manifests in `~/.revenue-engine-imparatta/outreach/`. Only draft companies that appear in none.
 
+Dedupe by normalized registrable website AND email domain, not company name alone.
+Re-run client exclusion for both domains; no warm-path exceptions. Re-check hire
+postings immediately before drafting. Only a saved `HIGH` gate plus the contact
+checks qualifies. Honor 3/night and 8/week ceilings, counting prior attempts.
+
 ## Output
 
 Collect every draft into one manifest `~/.revenue-engine-imparatta/outreach/<DATE>-batch.md` and
 archive a per-lead copy to `~/.revenue-engine-imparatta/leads/<slug>-<DATE>/outreach.md`. Each
-entry: a header line (To: name, title · email + deliverability · offer · language),
-the email (subject + body), and the LinkedIn DM.
+entry starts with a machine-readable header, followed by subject/body and LinkedIn DM:
+
+```markdown
+### <Company> - <person>
+
+- source: launch agent
+- strategy/signal: stuck leadership hire
+- domain: acme.com
+- source_url: https://boards.greenhouse.io/acme/jobs/123
+- source_date: YYYY-MM-DD
+- high_gate: HIGH
+- gate_record: <saved JSON path>
+- offer: <offer name>
+- language: english
+- hunter_score: 91
+- deliverable: yes
+- title: Head of Product
+- title_confirmed: yes
+- title_source_url: <current primary source or LinkedIn profile>
+- title_checked_at: <ISO timestamp>
+- job_url: https://boards.greenhouse.io/acme/jobs/123
+- job_status: OPEN
+- job_age_days: 47
+- job_checked_at: <ISO timestamp immediately before drafting>
+- to: Jane Doe, Head of Product <jane@acme.com>
+- draft_id: <actual gog response ID; n/a for report-only DM>
+- drafted_at: <ISO timestamp with offset; n/a when no Gmail draft>
+```
+
+`source` is always `launch agent` for this engine, including interactive runs.
+`strategy/signal` is exactly `stuck leadership hire` or `fresh raise`; retired
+signals never enter the draft set. For raises use `n/a` for job fields. Record
+actual current title and finder score, not placeholders. Keep these fields out of
+the email body. The tracker should copy source and strategy/signal from the matching
+manifest entry. A dry run still writes a manifest saying no drafts and why.

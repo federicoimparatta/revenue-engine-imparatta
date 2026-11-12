@@ -31,6 +31,7 @@ Everything specific to the practice lives in the data directory
 | `icp.md` | Target verticals, geographies, stage, buyer titles, offer mapping. |
 | `preferences.md` | Signal types, volume caps, dealbreakers, cross-engine dedupe, delivery channels. |
 | `exclude.md` | NEVER pitch: clients, partners, past employers, competitors. |
+| `clients-exclude.json` | Machine-readable hard exclusions by name and website/email domain; never warm paths. |
 | `lead-history.md` | Every lead ever surfaced, with status. The dedupe source. |
 | `leads/<slug>-<date>/` | Per-lead research and outreach archive. |
 | `outreach/` | Per-run outreach manifests. |
@@ -60,30 +61,85 @@ Write a user-facing bundle to `~/Downloads/revenue-engine-imparatta-<DATE>/`
    pre-configured, so a missing file is breakage, not a setup request.
 2. Extract the run focus from the arguments. `scheduled` (or no argument) sweeps all
    target verticals and geographies in `icp.md`; anything else narrows the run.
-3. **Build the dedupe set** (never contact a company twice, from EITHER identity):
-   - every company in `~/.revenue-engine-imparatta/lead-history.md`;
-   - recent manifests in `~/.revenue-engine-imparatta/outreach/`;
-   - recent drafts in the sending mailbox:
-     `gog gmail drafts list -a federico@imparatta.com --max 100`;
-   - **cross-engine**: every company in `~/.ataraxy-leads/lead-history.md` and every
-     slug under `~/.ataraxy-leads/claims/`. Federico runs a second outreach identity
-     (Ataraxy); a company must never hear from both. If the ataraxy files are absent
-     on this machine, note it in the report and continue.
-   Drop any company that appears anywhere above from the new results.
+3. **Build the dedupe set by registrable website domain**, with email domains as
+   a backstop. Collect website/email domains from this engine's `lead-history.md`,
+   ALL prior outreach manifests, and recent mailbox drafts:
+   `gog gmail drafts list -a federico@imparatta.com --max 100` (paginate if needed;
+   fetch draft details when recipients are not in the list output).
+   Also read `~/.ataraxy-leads/lead-history.md` and `~/.ataraxy-leads/claims/`.
+   Resolve claim slugs and old name-only history rows through their saved research
+   or manifests; a slug is not a domain. If a legacy company cannot be resolved,
+   retain its name as an additional block, never fabricate a domain. Note missing
+   Ataraxy files in the report.
 
-### Step 1: Hunt - fan out parallel research subagents
+   Normalize every URL, host and email with:
+   `python3 "<SKILL_DIR>/scripts/domain_util.py" normalize "<value>"`.
+   Save normalized domains one per line in the run's `seen-domains.txt` and check
+   each candidate with `domain_util.py in-set --domain <domain> --set-file <file>`.
+   Drop a lead if EITHER its website domain or contact email domain is seen.
+   Unknown website domain means no draft. Company-name matching is a backstop,
+   never the primary key. Reserve selected domains separately by lead record so
+   one run cannot select two aliases/contacts at the same company. A lead may
+   retain its own reservation during the final check. Add its domains to the
+   seen set immediately after successful draft creation.
+4. **Hard client exclusion before research or scoring**. Require a readable,
+   nonempty `clients-exclude.json` (missing/invalid means STOP drafting). Run:
 
-Dispatch research subagents in parallel, one per signal type enabled in
-`preferences.md` (hiring, funding/expansion, pain, leadership-gap). Each subagent
-uses web search/fetch, returns 6-10 verified companies, and is told to EXCLUDE
-everything in `exclude.md` plus the dealbreakers in `preferences.md`. Each record
-must carry: company, website domain, vertical + country, the signal + a real source
-URL, the best-fit offer (from the mapping in `icp.md`), a decision-maker
-(name/title/LinkedIn) if findable, and a one-line why-now.
+   ```bash
+   python3 "<SKILL_DIR>/scripts/domain_util.py" check-exclude \
+     --company "<name>" --domain "<website domain>" --email "<email or empty>" \
+     --exclude-file ~/.revenue-engine-imparatta/clients-exclude.json
+   ```
 
-Rules for every hunter: real source URL required - drop anything unverifiable;
-respect the geography scope in `icp.md`; never return an agency, dev shop, or
-staffing firm (that segment belongs to the ataraxy-leads engine).
+   `EXCLUDE` means hard skip: no draft, no prospect or warm-path recommendation,
+   no evaluator/High-gate call. Honor `exclude.md` and all dealbreakers too.
+   An error is not clearance; stop drafting until the check succeeds. Re-check
+   after discovering the email, because either domain can independently exclude.
+
+### Step 1: Hunt - structured sources only
+
+Use only these two buying-intent lanes; no open-ended four-signal web-search hunt.
+Search may locate structured pages, but snippets are never evidence. Do not hunt
+shipping stalls, changelog gaps, coming-soon pages, social silence or leadership
+departures. No result-count target: zero qualifying leads is a valid outcome.
+
+1. **Stuck leadership hires**: CPO / Chief Product Officer, Head of Product,
+   Head of Delivery, Head of AI or Head of Data (including combined titles).
+   Use Greenhouse, Ashby, Lever, Wellfound and the fractional boards explicitly
+   enabled in `preferences.md` (currently fractionals.work). The role must still
+   be open and its **first-posted date** must be at least 30 days ago; a last-updated
+   date or repost alone does not prove age. Prefer the board's posting/API URL:
+   `boards.greenhouse.io`, `job-boards.greenhouse.io`, `boards-api.greenhouse.io`,
+   `jobs.ashbyhq.com`, `api.ashbyhq.com/posting-api`, `jobs.lever.co`,
+   `api.lever.co/v0/postings`, `wellfound.com`, `fractionals.work`.
+   Fetch the specific posting today and run:
+
+   ```bash
+   python3 "<SKILL_DIR>/scripts/validate_job_posting.py" --url "<job URL>"
+   ```
+
+   Only `OPEN` plus integer `age_days >= 30` qualifies. `CLOSED` is dropped;
+   `UNKNOWN` or unknown age is report-only, never guessed. The validator accepts
+   structured individual-job evidence, not generic pages or search snippets.
+   For Greenhouse pages without structured job data, use the individual public
+   API URL `https://boards-api.greenhouse.io/v1/boards/<board>/jobs/<job_id>`
+   (not the full-board list). Do not substitute `updated_at` for `first_published`.
+   Save the source response and validator output. Re-check immediately before
+   drafting; a newly closed or unverified role is dropped from the draft set.
+2. **Fresh raises**: dated seed / seed extension / pre-A or Series A announcements
+   from the **last 60 days**, explicitly funding a product or AI build-out.
+   Use company announcements, official press releases, TechCrunch funding desks
+   or Crunchbase News; verify the visible announcement date and build-out text
+   on the source page. No date, future date, outside 60 days, Series B+ raise,
+   or generic expansion without product/AI intent means no qualifying signal.
+
+Each record must carry company, normalized website domain, vertical + country,
+remote/geography evidence, stage + source, signal type (`stuck leadership hire`
+or `fresh raise`), real source URL, first-posted/announcement date, job title +
+liveness/age (for hires), best-fit offer, current decision-maker name/title/source
+if findable, and a one-line why-now. Apply exclusions and dedupe before enrichment.
+Never return agencies, dev shops or staffing firms. Do not launch research subagents
+unless the user explicitly requests delegation for that run.
 
 ### Step 2: Accounts to Contacts
 
@@ -101,20 +157,38 @@ a role is known, record the target title and the company LinkedIn people-search 
 python3 "<SKILL_DIR>/scripts/hunter_lookup.py" enrich --domain <domain> --first <First> --last <Last>
 ```
 
-Act on the result: `deliverable=yes` is emailable; `NOT_FOUND`, `deliverable=no` or
-`deliverable=unknown` means do NOT email (LinkedIn-only); `risky` (catch-all domain) gets no draft:
-LinkedIn-only, listed in the report flagged risky. Never guess email patterns - guessed
-addresses bounce and burn the imparatta.com domain.
+A Gmail draft is allowed only with `deliverable=yes`, a **numeric
+`finder_score >= 80`**, and a primary source or current LinkedIn profile confirming
+that this person **currently holds that title at this company**. Record `title`,
+`title_source_url` and `title_checked_at` in the lead and manifest. If the person
+has left or the title cannot be confirmed, no email. A search snippet or Hunter's
+stored title alone is insufficient current-title evidence.
+
+`NOT_FOUND`, missing/non-numeric/under-80 scores, `deliverable=no/unknown`, and
+`risky` catch-all emails get no Gmail draft (LinkedIn-only at most, with a confirmed
+current profile). Never guess email patterns. `hunter_lookup.py` reports the score
+floor and email eligibility; it does not confirm titles or qualify the account.
+
+After resolving an email, repeat both domain dedupe and client exclusion on its
+domain. For stuck-hire leads, repeat `validate_job_posting.py` immediately before
+Step 5; only still-OPEN, age-verified postings remain eligible.
 
 ### Step 3: Score and Exclude
 
-Score each lead High/Medium/Low per `references/icp-scoring.md` (parallelize with
-`scripts/evaluate-leads.md` for large batches). Apply `exclude.md` and the
-dealbreakers BEFORE banding. Then select the DRAFT SET: only High-fit leads, ONE
-contact per company (the strongest), at most the cap in `preferences.md`. When more
-High leads exist than the cap, draft the strongest and band the rest Medium with a
-note. Nothing outside the draft set ever gets a Gmail draft - Medium leads and
-second contacts go in the report only.
+Apply `clients-exclude.json`, `exclude.md`, domain dedupe and dealbreakers BEFORE
+banding. For every survivor, use `references/icp-scoring.md` and
+`scripts/evaluate-leads.md`: save a gate JSON record with evidence for each field,
+then run `python3 "<SKILL_DIR>/scripts/high_gate.py" --record <gate.json>`.
+Only the script's literal `HIGH` verdict can enter the DRAFT SET, with Step 2's
+contact checks also passed. A failed/error gate is never High.
+
+ONE contact per normalized website domain, **max 3 Gmail drafts per night and 8
+per Monday-Sunday week** (America/Montevideo). Count already-created drafts in
+manifests/mailbox for the same night/week, including earlier attempts; if totals
+cannot be reconciled, create no additional drafts. Caps are ceilings, not quotas.
+When more qualify, choose the strongest and report the rest as High, deferred by
+cap. If fewer qualify, draft fewer. Medium/Low leads never receive Gmail drafts.
+Shipping stalls and leadership departures cannot qualify, regardless of fit.
 
 ### Step 4: Save History
 
@@ -130,15 +204,18 @@ Append ALL leads (including skips) to `~/.revenue-engine-imparatta/lead-history.
 ```markdown
 ## [DATE] - Search: "[focus]"
 
-| Company | Vertical · Country | Signal | Offer | Fit | Contact + LinkedIn | Status | Notes |
-|---------|--------------------|--------|-------|-----|--------------------|--------|-------|
-| ... | ... | ... | ... | ... | Name, Title - linkedin.com/in/... | New | ... |
+| Company | Domain | Vertical · Country | Signal | Source | Offer | Fit | Contact + LinkedIn | Status | Notes |
+|---------|--------|--------------------|--------|--------|-------|-----|--------------------|--------|-------|
+| ... | acme.com | ... | stuck leadership hire | launch agent | ... | High | Name, confirmed Title - linkedin.com/in/... | Drafted | hunter_score=91; job_age_days=47 |
 ```
 
 **Always write the day heading, even on a run that surfaced zero leads** (add a
 single line `No leads surfaced.` under it). The heading must contain `## [<DATE>]`
 literally - square brackets included - because the scheduled runner greps for
 exactly that: an absent heading means the run failed, never that the day was quiet.
+
+Source is `launch agent` on every new row, and Signal uses the exact allowed signal
+type. Domain is the normalized registrable website domain; preserve existing history.
 
 Statuses: `New`, `Drafted`, `Contacted`, `Replied`, `Skipped`.
 
@@ -150,8 +227,9 @@ Create `~/Downloads/revenue-engine-imparatta-<DATE>/`. Write `report.md` (and
 - Header: run focus, ICP filters applied, signals hunted, sources, caveats (risky
   emails, LinkedIn profiles marked "not found", ataraxy ledger unavailable, etc.).
 - **HIGH FIT**: each lead with vertical + country, best-fit offer, why-now, signal +
-  source URL, matching proof point, and a Contact block: LinkedIn URL, name + title,
-  verified email + deliverability status, and the outreach language chosen.
+  source URL, matching proof point, and a Contact block: LinkedIn URL, name + confirmed current title/source,
+  finder score, verified email + deliverability status, and the outreach language.
+  Include the source date, posting check and saved High-gate verdict/record.
 - **MEDIUM FIT** table (worth-an-ask), with the LinkedIn column.
 - **SKIPPED** table with the reason (excluded / duplicate / cross-engine / off-profile).
 
@@ -159,7 +237,13 @@ Then write the cold outreach per `references/outreach-guide.md` - the lowercase
 style, language policy, structure, signature and channel rules all come from
 `identity.md`. Collect all drafts into one manifest
 `~/.revenue-engine-imparatta/outreach/<DATE>-batch.md` and archive per-lead copies
-to `~/.revenue-engine-imparatta/leads/<slug>-<DATE>/`.
+to `~/.revenue-engine-imparatta/leads/<slug>-<DATE>/`. Each manifest entry must use
+the machine-readable fields in `references/outreach-guide.md`, including
+`source: launch agent`, `strategy/signal`, confirmed title and High-gate evidence.
+Do not put tracker/source metadata into recipient-visible email text. Record the
+actual Gmail draft ID immediately after creation, before proceeding to another lead.
+Re-check the cap, domain dedupe, exclusions, title and (for hires) posting liveness
+immediately before each draft; update the gate record if evidence changed.
 
 **Gmail drafts - gog only.** For every draft-set lead (Step 3) with a verified
 deliverable email, write the body to a temp file and create the draft:
@@ -169,7 +253,7 @@ gog gmail drafts create -a federico@imparatta.com \
   --to "<email>" --subject "<subject>" --body-file "<tempfile>"
 ```
 
-Plain text only, never `--body-html`, never send. LinkedIn-only leads get no draft -
+Plain text only, never `--body-html`, **never send or reply**. LinkedIn-only leads get no draft -
 they go in the report with a ready-to-paste DM for manual sending. Never automate
 LinkedIn (no bots, no Selenium: ToS and account-ban risk). Do NOT use the Gmail MCP
 tools: the connected MCP mailbox is a different account.

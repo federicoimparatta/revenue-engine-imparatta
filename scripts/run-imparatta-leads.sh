@@ -5,7 +5,7 @@
 # adds caffeinate (maintenance-sleep kills long claude runs) and pages Federico on
 # any non-zero exit.
 #
-# Single-phase on purpose: this engine drafts at most 6 emails a night, so the blast
+# Single-phase on purpose: this engine drafts at most 3 emails a night, so the blast
 # radius of a partial run is small. What it borrows from the battle-tested
 # ataraxy-leads runner is everything that failed there first: the run lock, the hard
 # deadline, usage-limit detection, and asserting on ARTIFACTS instead of trusting
@@ -166,7 +166,7 @@ fi
 if [ "$FINAL_RC" -eq 91 ]; then
   # Not a sweep failure: everything that touches a prospect completed. Do NOT print
   # the reconcile-before-re-running guidance here - re-running is exactly wrong, it
-  # would double-draft six prospects to re-send one message.
+  # would double-draft three prospects to re-send one message.
   say "RUNNER FAIL: $FAILMSG"
   say "             The drafts and the report are COMPLETE - do not re-run the sweep."
   say "             Read the summary at $BUNDLE/report.md, or post it by hand."

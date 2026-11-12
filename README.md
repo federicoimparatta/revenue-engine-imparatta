@@ -12,13 +12,16 @@ headless from launchd.
 
 ## What a run does
 
-1. Dedupe against its own ledger AND the ataraxy-leads ledger (two outreach
-   identities, one inbox rule: a company never hears from both).
-2. Hunt four signal seams in parallel: stuck senior product-leadership hires,
-   fresh raises with product/AI build-out promises, public shipping stalls, and
-   leadership departures with no successor.
-3. Verify contacts (real LinkedIn profiles only, Hunter.io-verified emails only).
-4. Score against the ICP, cap at 6 drafts a night to protect the sending domain.
+1. Dedupe normalized registrable website/email domains across both engines, saved
+   manifests and mailbox drafts. Hard-skip clients by name and both domains.
+2. Hunt structured leadership postings on Greenhouse, Ashby, Lever, Wellfound and
+   fractionals.work, still open and first posted >=30 days ago; or seed/Series A
+   raises from the last 60 days explicitly funding a product or AI build-out.
+   Shipping stalls and leadership departures are retired signals.
+3. Confirm current titles and require Hunter finder_score >=80 plus deliverable=yes.
+   Re-check job liveness immediately before drafting.
+4. Apply the fail-closed High gate. Cap at 3 drafts a night and 8 per Monday-Sunday
+   week, including previous same-night attempts. Ceilings, never quotas.
 5. Draft lowercase, plain-text cold emails into federico@imparatta.com via
    `gog gmail drafts create` - drafts only, every send is manual.
 6. Write the report bundle to `~/Downloads/revenue-engine-imparatta-<date>/`,
@@ -31,6 +34,7 @@ git clone git@github.com:federicoimparatta/revenue-engine-imparatta.git \
   ~/.claude/skills/revenue-engine-imparatta
 mkdir -p ~/.revenue-engine-imparatta/.secrets
 # seed identity.md services.md icp.md preferences.md exclude.md lead-history.md
+# copy the live clients-exclude.json from the configured machine (never commit it)
 # (copy from the machine that has them - they are not in this repo)
 # put the Hunter.io key in ~/.revenue-engine-imparatta/.secrets/hunter.env
 gog auth add   # federico@imparatta.com, gmail scope
@@ -74,5 +78,30 @@ Or run interactively inside Claude Code: `/revenue-engine-imparatta`.
 | `scripts/run-imparatta-leads.sh` | The launchd runner (lock, deadline, artifact assertions). |
 | `scripts/hunter_lookup.py` | Hunter.io email find + verify. |
 | `scripts/check-setup.sh` | Install sanity check. |
+| `scripts/high_gate.py` | Deterministic pass/fail High gate. |
+| `scripts/validate_job_posting.py` | Live structured posting and first-posted age check. |
+| `scripts/domain_util.py` | Registrable-domain dedupe and client exclusion. |
+| `scripts/public_suffix_list.dat` | Bundled Mozilla Public Suffix List; offline domain normalization. |
+| `scripts/test_quality_gates.py` | Offline smoke/regression checks; no sends or drafts. |
 | `launchd/` | The LaunchAgent plist. |
 | `~/.revenue-engine-imparatta/` | Data: config, ledger, per-lead archives, secrets. Never in this repo. |
+
+## Validate changes
+
+```bash
+bash scripts/check-setup.sh
+python3 scripts/test_quality_gates.py
+python3 scripts/domain_util.py normalize https://www.nike.com/careers
+python3 scripts/domain_util.py check-exclude --company Nike --domain nike.com \
+  --exclude-file ~/.revenue-engine-imparatta/clients-exclude.json
+# EXCLUDE exits 1 intentionally.
+```
+
+A scheduled sweep remains drafts-only via gog to federico@imparatta.com, never
+send/reply. Check its report/manifest for 0-3 drafts, HIGH evidence, confirmed title,
+finder score >=80, live age-verified role (for hires), source: launch agent and
+strategy/signal. Do not commit the live data directory or secrets.
+
+The domain helper uses the bundled [Public Suffix List](https://publicsuffix.org/list/)
+(including private suffixes) to normalize subdomains and country-code domains
+without runtime network access. The list retains its Mozilla Public License notice.

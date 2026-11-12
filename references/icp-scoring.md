@@ -15,40 +15,54 @@ is `~/.revenue-engine-imparatta/icp.md` (targets, offer mapping, buyer titles) p
 A lead can map to two offers. Lead with the single strongest in outreach; mention the
 second only if it strengthens the pitch.
 
-## Scoring dimensions
+## High is a pass/fail gate
 
-- **Vertical match** - is the company in a target industry from `icp.md`? In-vertical
-  = full marks; adjacent = partial; unrelated = fail.
-- **Signal strength** - a fresh, specific signal (recent raise, an open role that IS
-  the pain, hard evidence of the problem) is STRONG; a generic posting or a stale
-  signal (older than the recency window in `preferences.md`) is WEAK.
-- **Geography** - inside the target geographies from `icp.md`. If outreach is
-  localized per the language policy, near-miss geographies can still qualify when the
-  signal is strong; hard-avoid regions never do.
-- **Company stage and budget** - matches the stage/size range in `icp.md`. Companies
-  plausibly able to pay = good; too early/no budget, or so large they solve this
-  in-house with no visible gap = down-weight.
-- **Offer fit** - does one offer in `services.md` cleanly solve a real, current need
-  evidenced by the signal? A forced fit is a Low.
+Apply the hard exclusions first. For every surviving lead, save a JSON gate record
+and run `python3 "<SKILL_DIR>/scripts/high_gate.py" --record <gate.json>`.
+See the script docstring for the input schema. Save the record, source evidence and
+literal verdict with the lead; hand/optional model scores cannot override it.
+Every condition must pass:
 
-## Bands
+- Direct target vertical (`vertical_match: in_vertical`), not merely adjacent.
+- In-geo per `icp.md`, or verified remote compatibility with Federico's location
+  (`geography_fit: in_geo` or `remote`). A generic remote label restricted to an
+  incompatible country does not count.
+- Verified seed through Series B, within the ICP size/budget bounds (`stage` plus
+  `stage_ok: true`). Bootstrapped, later-stage or unknown-stage companies cannot be High.
+- Real source URL and a non-future source date. For hires: a permitted structured
+  board, target leadership title, still OPEN and first posted >=30 days ago;
+  `job_age_days` must match `source_date` and `job_date_kind: first_posted`.
+  This is a 30-days-or-older live-posting window, with no maximum age while open.
+  For raises: the dated announcement is 0-60 days old, seed/seed extension/pre-A
+  or Series A, explicitly funding product or AI build-out. A Series B company can
+  qualify through a stuck hire, but a Series B raise is not a qualifying signal.
+- A clean single-offer fit from `services.md` (`offer_fit`), with evidence.
+- Buying intent is exactly `stuck leadership hire` or `fresh raise` as above.
+- Explicitly cleared exclusions, duplicate domains and dealbreakers (all false).
+  Missing checks fail closed.
 
-- **High** - target vertical + clear current signal + in-geo + plausible budget + a
-  clean single-offer fit. These get outreach drafts (respect the per-run cap in
-  `preferences.md`; named contacts first).
-- **Medium** - partial: right vertical but weak signal, or strong signal but edge
-  geography/stage. "Worth-an-ask" speculatives.
-- **Low / skip** - off-vertical, no budget, dealbreaker hit, no offer fit, or on the
-  exclude list.
+Shipping stalls, changelog gaps, coming-soon pages, social silence and leadership
+departures **cannot be High**. Retire those hunts; on scheduled runs, skip them.
+
+## Bands and draft eligibility
+
+- **High**: script prints `HIGH`. Gmail drafting additionally requires Hunter
+  `finder_score >= 80`, `deliverable=yes`, and a confirmed current title. Re-check
+  stuck-hire liveness immediately before drafting.
+- **Medium**: partial fit or unverifiable age/date; report only, no Gmail draft.
+- **Low / skip**: off-profile, closed role, no intent/offer/budget, excluded,
+  duplicate, or dealbreaker. Never pitch excluded clients, including warm paths.
+
+The cap is a ceiling: at most 3 drafts per night and 8 per Monday-Sunday week.
+Count prior same-night attempts too. Draft fewer when fewer pass; never promote
+Medium to fill volume. Highs beyond the cap remain High, deferred by cap.
 
 ## Hard exclude (apply BEFORE banding)
 
-Everything in `~/.revenue-engine-imparatta/exclude.md` is dropped entirely:
-
-- **Clients** - never pitched AND never named anywhere in any output.
-- **Partners** - never pitched.
-- **Competitors** - never pitched; a candidate that turns out to sell what the client
-  sells goes in the Skipped table with the reason, not a pitch.
-
-Also drop, always: any company already in `lead-history.md` (duplicate), and any
-lookalike reference company from `icp.md` unless the user explicitly asks to pitch it.
+Run `scripts/domain_util.py check-exclude --company "<company>" --domain "<website>"
+--email "<email>" --exclude-file ~/.revenue-engine-imparatta/clients-exclude.json`
+(on one line). `EXCLUDE` is a hard skip before evaluation; errors block drafting.
+Check BOTH website and email domains independently. Also honor `exclude.md`, all
+`preferences.md` dealbreakers, reference lookalikes, and both engines' ledgers.
+Use normalized registrable website/email domains for dedupe, not company names;
+retain name matching only as an additional backstop for unresolved legacy rows.

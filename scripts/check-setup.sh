@@ -31,6 +31,32 @@ else
   warn "Not configured yet - seed ~/.revenue-engine-imparatta (see README)"
 fi
 
+# Deterministic quality helpers are required even when email is unavailable.
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if python3 - "$SKILL_DIR" <<'PYCHECK'
+import json
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(sys.argv[1]) / 'scripts'))
+from domain_util import excluded, registrable
+from high_gate import evaluate
+from validate_job_posting import inspect
+rules = json.loads((Path.home() / '.revenue-engine-imparatta/clients-exclude.json').read_text())
+assert isinstance(rules, list) and rules, 'missing exclusion rules'
+assert registrable('https://www.nike.com/careers') == 'nike.com'
+assert registrable('careers.acme.co.uk') == 'acme.co.uk'
+for name in ('Ataraxy', 'TransGrid Energy', 'EnergyFluo', 'SMG', 'Squadron Data',
+             'Mozart', 'SweatWorks', 'Nike', 'Equinox', 'SoulCycle', 'Verusen',
+             'Kleva', 'White Pearl', 'WPTG', 'Sidetool', 'Grimco'):
+    assert excluded(name, '', '', rules), 'missing hard exclusion: ' + name
+PYCHECK
+then
+  ok "Quality helpers, suffix list and hard client-exclusion list loaded"
+else
+  fail "Quality gate/exclusion setup failed - drafting must stop"
+  exit 1
+fi
+
 # Optional
 if command -v python3 >/dev/null 2>&1; then
   if python3 -c "import docx" >/dev/null 2>&1; then

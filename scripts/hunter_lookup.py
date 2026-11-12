@@ -13,8 +13,12 @@ Usage:
 
 `enrich` output line:
   <email or NOT_FOUND> | finder_score=NN | verify=<result>/<status> | deliverable=<yes|risky|no|unknown>
+  | finder_floor=<pass|fail> | email_eligible=<yes|no>
+
+Email eligibility requires numeric finder_score >=80 and deliverable=yes.
+A confirmed current title and High gate are still required by the workflow.
 """
-import argparse, json, os, subprocess, sys, urllib.parse
+import argparse, json, math, os, subprocess, sys, urllib.parse
 
 API = "https://api.hunter.io/v2"
 
@@ -34,7 +38,8 @@ def load_key():
 def call(endpoint, params):
     params["api_key"] = load_key()
     url = f"{API}/{endpoint}?" + urllib.parse.urlencode(params)
-    out = subprocess.run(["curl", "-s", url], capture_output=True, text=True).stdout
+    out = subprocess.run(["curl", "-sS", "--max-time", "25", url],
+                         capture_output=True, text=True, timeout=30).stdout
     try:
         return json.loads(out)
     except json.JSONDecodeError:
@@ -43,15 +48,20 @@ def call(endpoint, params):
 
 def deliverable(result, status):
     # Hunter result: deliverable | risky | undeliverable | unknown
-    if result == "deliverable":
-        return "yes"
     if result == "undeliverable":
         return "no"
     if status == "accept_all":
         return "risky"  # catch-all domain: cannot be confirmed
     if result == "risky":
         return "risky"
+    if result == "deliverable":
+        return "yes"
     return "unknown"
+
+
+def finder_passes(score):
+    return (type(score) in (int, float) and math.isfinite(score)
+            and 80 <= score <= 100)
 
 
 def main():
@@ -85,13 +95,16 @@ def main():
     if not email:
         print(f"NOT_FOUND ({a.first} {a.last} @ {a.domain})")
         return
+    floor = "pass" if finder_passes(score) else "fail"
     if a.cmd == "find":
-        print(f"{email} | finder_score={score}")
+        print(f"{email} | finder_score={score} | finder_floor={floor} | draft_eligible=no (unverified)")
         return
     vd = call("email-verifier", {"email": email}).get("data", {})
+    delivery = deliverable(vd.get("result"), vd.get("status"))
+    eligible = "yes" if floor == "pass" and delivery == "yes" else "no"
     print(f"{email} | finder_score={score} | "
           f"verify={vd.get('result')}/{vd.get('status')} | "
-          f"deliverable={deliverable(vd.get('result'), vd.get('status'))}")
+          f"deliverable={delivery} | finder_floor={floor} | email_eligible={eligible}")
 
 
 if __name__ == "__main__":
