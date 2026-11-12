@@ -10,6 +10,25 @@ First run `scripts/domain_util.py check-exclude --company "<name>" --domain
 skipped, never evaluated or proposed as warm paths. Errors block drafting.
 Apply `exclude.md`, dealbreakers and domain dedupe against both engines too.
 
+For each survivor, when `TYPESAFE_API_KEY` is configured in the environment or
+`~/.revenue-engine-imparatta/.secrets/typesafe.env`, get advisory dimensions with:
+
+```bash
+python3 "<SKILL_DIR>/scripts/typesafe_score.py" score --record <lead.json>
+```
+
+The scorer input is a JSON object containing `company`, `vertical`, `country`,
+`signal` (the verified buying intent), `source_url`, `icp_verticals` (array),
+`icp_geographies` (array), `icp_stage` (string), and `offers` (array of objects
+with `name` and `what`). Read ICP/offer context from the local config files.
+It returns `vertical_match`, `signal_strength`, `geography_fit`,
+`stage_budget_fit` and `offer_fit`, with confidence/probability. Missing key,
+API failure or confidence below 0.5 means assess the affected dimensions from
+evidence by hand. Do not treat model confidence as dated evidence, verified
+stage, job age, current title or liveness. Never send excluded records to the
+scorer. Either scoring path must still run the gate below; neither can choose
+or override the High band.
+
 For each survivor, build an evidence-backed JSON record following the docstring
 in `scripts/high_gate.py` and run:
 

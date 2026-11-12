@@ -36,6 +36,7 @@ Everything specific to the practice lives in the data directory
 | `leads/<slug>-<date>/` | Per-lead research and outreach archive. |
 | `outreach/` | Per-run outreach manifests. |
 | `.secrets/hunter.env` | Hunter.io key. Gitignored, never committed. |
+| `.secrets/typesafe.env` | TypeSafe (Jev) key. Optional - enables fast structured lead scoring (Step 3). Gitignored, never committed. |
 
 ## Deliverables (every run)
 
@@ -179,6 +180,9 @@ Apply `clients-exclude.json`, `exclude.md`, domain dedupe and dealbreakers BEFOR
 banding. For every survivor, use `references/icp-scoring.md` and
 `scripts/evaluate-leads.md`: save a gate JSON record with evidence for each field,
 then run `python3 "<SKILL_DIR>/scripts/high_gate.py" --record <gate.json>`.
+When TypeSafe/Jev is configured, use `scripts/typesafe_score.py` for advisory
+dimension scores as described in `scripts/evaluate-leads.md`; otherwise assess
+dimensions from source evidence by hand. Neither path may override the gate.
 Only the script's literal `HIGH` verdict can enter the DRAFT SET, with Step 2's
 contact checks also passed. A failed/error gate is never High.
 

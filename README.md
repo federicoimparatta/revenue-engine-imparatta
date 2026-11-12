@@ -20,7 +20,7 @@ headless from launchd.
    Shipping stalls and leadership departures are retired signals.
 3. Confirm current titles and require Hunter finder_score >=80 plus deliverable=yes.
    Re-check job liveness immediately before drafting.
-4. Apply the fail-closed High gate. Cap at 3 drafts a night and 8 per Monday-Sunday
+4. Score dimensions via optional TypeSafe/Jev or by hand, then apply the fail-closed High gate. Cap at 3 drafts a night and 8 per Monday-Sunday
    week, including previous same-night attempts. Ceilings, never quotas.
 5. Draft lowercase, plain-text cold emails into federico@imparatta.com via
    `gog gmail drafts create` - drafts only, every send is manual.
@@ -37,6 +37,8 @@ mkdir -p ~/.revenue-engine-imparatta/.secrets
 # copy the live clients-exclude.json from the configured machine (never commit it)
 # (copy from the machine that has them - they are not in this repo)
 # put the Hunter.io key in ~/.revenue-engine-imparatta/.secrets/hunter.env
+# put the TypeSafe key in ~/.revenue-engine-imparatta/.secrets/typesafe.env
+#   (optional - format: TYPESAFE_API_KEY=<key>, no quotes, no "export")
 gog auth add   # federico@imparatta.com, gmail scope
 cp launchd/com.federico.imparatta-leads.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.federico.imparatta-leads.plist
@@ -77,6 +79,7 @@ Or run interactively inside Claude Code: `/revenue-engine-imparatta`.
 | `references/` | Scoring rubric and outreach framework. |
 | `scripts/run-imparatta-leads.sh` | The launchd runner (lock, deadline, artifact assertions). |
 | `scripts/hunter_lookup.py` | Hunter.io email find + verify. |
+| `scripts/typesafe_score.py` | TypeSafe (Jev) lead-fit scoring - optional, see `references/icp-scoring.md`. |
 | `scripts/check-setup.sh` | Install sanity check. |
 | `scripts/high_gate.py` | Deterministic pass/fail High gate. |
 | `scripts/validate_job_posting.py` | Live structured posting and first-posted age check. |

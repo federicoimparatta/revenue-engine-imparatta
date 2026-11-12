@@ -4,6 +4,13 @@ Score every lead **High / Medium / Low** against the client's ICP. The source of
 is `~/.revenue-engine-imparatta/icp.md` (targets, offer mapping, buyer titles) plus
 `~/.revenue-engine-imparatta/preferences.md` (weights, dealbreakers); this file is the rubric.
 
+When `TYPESAFE_API_KEY` is configured (environment or `.secrets/typesafe.env`),
+`scripts/typesafe_score.py` supplies advisory TypeSafe/Jev scores for vertical,
+signal strength, geography, stage/budget and offer fit. Without it, assess the
+same dimensions from source evidence by hand. These scores never determine High:
+`high_gate.py` is the final pass/fail authority in both paths. See
+`scripts/evaluate-leads.md` for the optional scorer input and fallback.
+
 ## Offer mapping
 
 `icp.md` contains a table mapping signals to offers (built during setup):
